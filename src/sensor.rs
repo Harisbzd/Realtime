@@ -37,31 +37,18 @@ pub fn generate_sensor_packet() -> SensorPacket {
 
 pub fn start_sensor_data_stream(tx: tokio::sync::mpsc::Sender<SensorPacket>) {
     tokio::spawn(async move {
-        let interval = Duration::from_millis(1);
+        let interval = Duration::from_millis(5);
         let mut next_tick = Instant::now();
 
-        for i in 0..3000 {
-            let now = Instant::now();
-            let jitter = now.saturating_duration_since(next_tick);
+        for _ in 0..3000 {
             next_tick += interval;
-
-            println!("Packet {}\nJitter: {:.2} µs", i + 1, jitter.as_secs_f64() * 1_000_000.0);
-
-            let gen_start = Instant::now();
             let packet = super::sensor::generate_sensor_packet();
-            println!(
-                "Sensor generation time: {:.3} ms",
-                gen_start.elapsed().as_secs_f64() * 1000.0
-            );
-
             if tx.send(packet).await.is_err() {
                 eprintln!("Receiver dropped. Stopping sensor stream.");
                 break;
             }
 
-            if let Some(remaining) = next_tick.checked_duration_since(Instant::now()) {
-                tokio::time::sleep(remaining).await;
-            }
+            tokio::time::sleep(Duration::from_millis(5)).await;
         }
     });
 }

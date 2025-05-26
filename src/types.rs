@@ -17,7 +17,7 @@ pub enum AnomalyType {
 }
 
 #[derive(Debug)]
-pub struct AnomalyReport {
+pub struct AnomalyReport<'a> {
     pub anomaly: AnomalyType,
-    pub packet: SensorPacket,
+    pub packet: &'a SensorPacket,
 }

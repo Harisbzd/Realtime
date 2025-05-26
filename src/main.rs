@@ -24,14 +24,10 @@ async fn main() {
     // Spawn transmitter task
     tokio::spawn(async move {
         while let Some(packet) = tx_rx.recv().await {
-            let tx_start = Instant::now();
             transmitter.send(&packet).await;
-            let tx_time = tx_start.elapsed().as_secs_f64() * 1000.0;
-            println!("Transmit time: {:.3} ms", tx_time);
         }
     });
 
-    println!("🔄 Starting real-time processing...");
 
     let mut file = File::create("sensor_log.csv").expect("Failed to create log file");
     writeln!(
@@ -45,23 +41,17 @@ async fn main() {
         packet_count += 1;
 
         let proc_start = Instant::now();
-        let (filtered, anomalies) = processor.process(packet);
+        let (filtered, anomalies) = processor.process(&packet);
         let proc_time = proc_start.elapsed().as_secs_f64() * 1000.0;
-
-        println!(
-            "Packet {}:\n  Filtered force: {:.3}\n  position: {:.3}\n  temperature: {:.4}",
-            packet_count, filtered.force, filtered.position, filtered.temperature
-        );
-
         let anomaly_str = anomalies
             .iter()
             .map(|a| format!("{:?}", a.anomaly))
             .collect::<Vec<_>>()
             .join("; ");
 
-        if tx_tx.send(filtered.clone()).await.is_err() {
-            eprintln!("Failed to send packet to transmitter");
-        }
+            if tx_tx.send(filtered.clone()).await.is_err() {
+                eprintln!("Failed to send packet to transmitter");
+            }
 
         writeln!(
             file,
@@ -71,7 +61,8 @@ async fn main() {
             filtered.position,
             filtered.temperature,
             anomaly_str,
-            proc_time
+            proc_time,
+          
         )
         .expect("Failed to write to CSV file");
     }

@@ -1,8 +1,7 @@
 use crate::types::{AnomalyReport, AnomalyType, SensorPacket};
 use std::collections::VecDeque;
-use std::time::Instant;
 
-const WINDOW: usize = 1;
+const WINDOW: usize = 5;
 
 pub struct SensorProcessor {
     force_buffer: VecDeque<f32>,
@@ -19,48 +18,42 @@ impl SensorProcessor {
         }
     }
 
-    pub fn process(&mut self, packet: SensorPacket) -> (SensorPacket, Vec<AnomalyReport>) {
-        let start = Instant::now();
-
+    pub fn process<'a>(&mut self, packet: &'a SensorPacket) -> (SensorPacket, Vec<AnomalyReport<'a>>) {
+    
         let mut anomalies = Vec::new();
-
+    
         if packet.force > 15.0 {
             anomalies.push(AnomalyReport {
                 anomaly: AnomalyType::ForceSpike,
-                packet: packet.clone(),
+                packet,
             });
         }
-
+    
         if packet.temperature > 30.0 {
             anomalies.push(AnomalyReport {
                 anomaly: AnomalyType::TempSpike,
-                packet: packet.clone(),
+                packet,
             });
         }
-
+    
         if packet.position < 2.0 {
             anomalies.push(AnomalyReport {
                 anomaly: AnomalyType::PositionalError,
-                packet: packet.clone(),
+                packet,
             });
         }
-
+    
         let f = Self::avg(&mut self.force_buffer, packet.force);
         let t = Self::avg(&mut self.temp_buffer, packet.temperature);
         let p = Self::avg(&mut self.pos_buffer, packet.position);
-
+    
         let smoothed = SensorPacket {
             timestamp: packet.timestamp,
             force: f,
             temperature: t,
             position: p,
         };
-
-        let elapsed = start.elapsed();
-        if cfg!(debug_assertions) {
-            println!("Processing time: {:.3} ms", elapsed.as_secs_f64() * 1000.0);
-        }
-
+    
         (smoothed, anomalies)
     }
 
