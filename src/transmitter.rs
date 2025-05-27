@@ -1,11 +1,14 @@
 use crate::types::SensorPacket;
-use lapin::{options::*, types::FieldTable, BasicProperties, Channel, Connection, ConnectionProperties};
+use lapin::{
+    options::{BasicPublishOptions, QueueDeclareOptions},
+    types::FieldTable,
+    BasicProperties, Channel, Connection, ConnectionProperties,
+};
 use serde_json;
-use std::sync::Arc;
-use tokio::sync::Mutex;
+
 
 pub struct Transmitter {
-    channel: Arc<Mutex<Channel>>,
+    channel: Channel, 
 }
 
 impl Transmitter {
@@ -25,30 +28,24 @@ impl Transmitter {
             .await
             .expect("Queue declare failed");
 
-        Self {
-            channel: Arc::new(Mutex::new(channel)),
-        }
+        Self { channel }
     }
 
-  
     pub async fn send(&self, packet: &SensorPacket) {
         let payload = serde_json::to_vec(packet).expect("Serialization failed");
         self.send_raw(&payload).await;
     }
 
     pub async fn send_raw(&self, payload: &[u8]) {
-        let channel = self.channel.lock().await;
-
-        channel
+        self.channel
             .basic_publish(
                 "",
                 "sensor_data",
-                BasicPublishOptions::default(),
+                BasicPublishOptions::default(), // confirm=true
                 payload,
                 BasicProperties::default(),
             )
             .await
             .expect("Publish failed");
-            
     }
 }

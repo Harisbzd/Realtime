@@ -17,5 +17,5 @@ criterion = { version = "0.6.0", features = ["async_tokio"] }
 
 
 [[bench]]
-name = "sensor_bench"
+name = "transmitter_bench"
 harness = false

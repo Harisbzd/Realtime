@@ -2,22 +2,19 @@ use crate::types::SensorPacket;
 use rand::{rng, Rng};
 use std::time::{Duration, Instant, SystemTime};
 
-
-
 fn generate_sensor_value(base: f32, variance: f32) -> f32 {
     rng().random_range(base - variance..=base + variance)
 }
-
 
 pub fn generate_sensor_packet() -> SensorPacket {
     let mut force = generate_sensor_value(10.0, 2.0);
     let mut position = generate_sensor_value(5.0, 1.0);
     let mut temperature = generate_sensor_value(25.0, 0.5);
 
-    // Inject anomalies randomly (5%)
+    // Inject anomalies randomly (20% chance)
     let mut rng = rng();
     let spike_chance: f32 = rng.random();
-    if spike_chance < 0.05 {
+    if spike_chance < 0.20 {
         match rng.random_range(0..3) {
             0 => force = 16.0 + rng.random_range(0.0..5.0),
             1 => temperature = 31.0 + rng.random_range(0.0..5.0),
@@ -34,21 +31,29 @@ pub fn generate_sensor_packet() -> SensorPacket {
     }
 }
 
-
-pub fn start_sensor_data_stream(tx: tokio::sync::mpsc::Sender<SensorPacket>) {
+pub fn start_sensor_data_stream(tx: tokio::sync::mpsc::Sender<(SensorPacket, f64)>) {
     tokio::spawn(async move {
         let interval = Duration::from_millis(5);
         let mut next_tick = Instant::now();
 
-        for _ in 0..3000 {
+        for i in 0..10000 {
             next_tick += interval;
-            let packet = super::sensor::generate_sensor_packet();
-            if tx.send(packet).await.is_err() {
+
+            let gen_start = Instant::now();
+            let packet = generate_sensor_packet();
+            let gen_time = gen_start.elapsed().as_secs_f64() * 1000.0; // ms
+
+            // Optional: log generation time
+            
+
+            if tx.send((packet, gen_time)).await.is_err() {
                 eprintln!("Receiver dropped. Stopping sensor stream.");
                 break;
             }
 
-            tokio::time::sleep(Duration::from_millis(5)).await;
+            if let Some(remaining) = next_tick.checked_duration_since(Instant::now()) {
+                tokio::time::sleep(remaining).await;
+            }
         }
     });
 }

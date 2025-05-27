@@ -14,55 +14,51 @@ use tokio::sync::mpsc as tokio_mpsc;
 #[tokio::main]
 async fn main() {
     let (sensor_tx, mut sensor_rx) = tokio_mpsc::channel(100);
-    let (tx_tx, mut tx_rx) = tokio_mpsc::channel(100);
-
     start_sensor_data_stream(sensor_tx);
 
     let mut processor = SensorProcessor::new();
     let transmitter = Transmitter::new("amqp://127.0.0.1:5672/%2f").await;
 
-    // Spawn transmitter task
-    tokio::spawn(async move {
-        while let Some(packet) = tx_rx.recv().await {
-            transmitter.send(&packet).await;
-        }
-    });
-
-
     let mut file = File::create("sensor_log.csv").expect("Failed to create log file");
     writeln!(
         file,
-        "Packet,Force,Position,Temperature,Anomaly,ProcTime_ms"
+        "Packet,Force,Position,Temperature,Anomaly,SensorGen_ms,ProcTime_ms,TxTime_ms"
     )
     .expect("Failed to write CSV header");
 
     let mut packet_count = 0;
-    while let Some(packet) = sensor_rx.recv().await {
+    while let Some((packet, sensor_time)) = sensor_rx.recv().await {
         packet_count += 1;
 
+        // ⏱️ Processing
         let proc_start = Instant::now();
         let (filtered, anomalies) = processor.process(&packet);
         let proc_time = proc_start.elapsed().as_secs_f64() * 1000.0;
+
+        // ⏱️ Transmission (inline)
+        let tx_start = Instant::now();
+        transmitter.send(&filtered).await;
+        let tx_time = tx_start.elapsed().as_secs_f64() * 1000.0;
+
+        // 📝 Anomaly description
         let anomaly_str = anomalies
             .iter()
             .map(|a| format!("{:?}", a.anomaly))
             .collect::<Vec<_>>()
             .join("; ");
 
-            if tx_tx.send(filtered.clone()).await.is_err() {
-                eprintln!("Failed to send packet to transmitter");
-            }
-
+        // 📝 Log to CSV
         writeln!(
             file,
-            "{},{:.3},{:.3},{:.4},\"{}\",{:.3}",
+            "{},{:.3},{:.3},{:.4},\"{}\",{:.3},{:.3},{:.3}",
             packet_count,
             filtered.force,
             filtered.position,
             filtered.temperature,
             anomaly_str,
+            sensor_time,
             proc_time,
-          
+            tx_time
         )
         .expect("Failed to write to CSV file");
     }
