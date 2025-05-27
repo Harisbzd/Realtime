@@ -1,5 +1,5 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use r1::transmitter::Transmitter;
+use r1::types::Transmitter;
 use r1::sensor::generate_sensor_packet; 
 use tokio::runtime::Runtime;
 

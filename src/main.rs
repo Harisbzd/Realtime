@@ -3,12 +3,12 @@ mod sensor;
 pub mod transmitter;
 mod types;
 
-use processor::SensorProcessor;
+use types::SensorProcessor;
 use sensor::start_sensor_data_stream;
 use std::fs::File;
 use std::io::Write;
 use std::time::Instant;
-use transmitter::Transmitter;
+use types::Transmitter;
 use tokio::sync::mpsc as tokio_mpsc;
 
 #[tokio::main]

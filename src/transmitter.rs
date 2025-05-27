@@ -1,15 +1,11 @@
 use crate::types::SensorPacket;
+use crate::types::Transmitter;
 use lapin::{
     options::{BasicPublishOptions, QueueDeclareOptions},
     types::FieldTable,
     BasicProperties, Channel, Connection, ConnectionProperties,
 };
 use serde_json;
-
-
-pub struct Transmitter {
-    channel: Channel, 
-}
 
 impl Transmitter {
     pub async fn new(uri: &str) -> Self {

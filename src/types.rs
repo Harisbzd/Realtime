@@ -1,5 +1,6 @@
+use lapin::Channel;
 use serde::Serialize;
-use std::time::SystemTime;
+use std::{collections::VecDeque, time::SystemTime};
 
 #[derive(Debug, Clone, Serialize)]
 pub struct SensorPacket {
@@ -19,5 +20,15 @@ pub enum AnomalyType {
 #[derive(Debug)]
 pub struct AnomalyReport<'a> {
     pub anomaly: AnomalyType,
+    #[allow(dead_code)]
     pub packet: &'a SensorPacket,
+}
+pub struct Transmitter {
+    pub(crate) channel: Channel, 
+}
+
+pub struct SensorProcessor {
+    pub force_buffer: VecDeque<f32>,
+    pub temp_buffer: VecDeque<f32>,
+    pub pos_buffer: VecDeque<f32>,
 }

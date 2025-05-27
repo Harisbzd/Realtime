@@ -11,7 +11,7 @@ pub fn generate_sensor_packet() -> SensorPacket {
     let mut position = generate_sensor_value(5.0, 1.0);
     let mut temperature = generate_sensor_value(25.0, 0.5);
 
-    // Inject anomalies randomly (20% chance)
+    // anomalies randomly (20% chance)
     let mut rng = rng();
     let spike_chance: f32 = rng.random();
     if spike_chance < 0.20 {

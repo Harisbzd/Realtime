@@ -1,6 +1,6 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 use std::hint::black_box;
-use r1::processor::SensorProcessor;
+use r1::types::SensorProcessor;
 use r1::sensor::generate_sensor_packet; 
 
 fn bench_processor_with_realistic_data(c: &mut Criterion) {

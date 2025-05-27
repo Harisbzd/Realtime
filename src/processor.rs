@@ -1,13 +1,7 @@
-use crate::types::{AnomalyReport, AnomalyType, SensorPacket};
+use crate::types::{AnomalyReport, AnomalyType, SensorPacket, SensorProcessor};
 use std::collections::VecDeque;
 
 const WINDOW: usize = 5;
-
-pub struct SensorProcessor {
-    force_buffer: VecDeque<f32>,
-    temp_buffer: VecDeque<f32>,
-    pos_buffer: VecDeque<f32>,
-}
 
 impl SensorProcessor {
     pub fn new() -> Self {
