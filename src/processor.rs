@@ -1,7 +1,9 @@
-use crate::types::{AnomalyReport, AnomalyType, SensorPacket, SensorProcessor};
 use std::collections::VecDeque;
+use crate::types::{AnomalyReport, AnomalyType, SensorPacket, SensorProcessor};
 
 const WINDOW: usize = 5;
+
+
 
 impl SensorProcessor {
     pub fn new() -> Self {
@@ -12,42 +14,46 @@ impl SensorProcessor {
         }
     }
 
-    pub fn process<'a>(&mut self, packet: &'a SensorPacket) -> (SensorPacket, Vec<AnomalyReport<'a>>) {
-    
+    pub fn process(&mut self, packet: &SensorPacket) -> (SensorPacket, Vec<AnomalyReport>) {
         let mut anomalies = Vec::new();
-    
+
         if packet.force > 15.0 {
             anomalies.push(AnomalyReport {
                 anomaly: AnomalyType::ForceSpike,
-                packet,
+                packet: packet.clone(), // cloned here
             });
         }
-    
+
         if packet.temperature > 30.0 {
             anomalies.push(AnomalyReport {
                 anomaly: AnomalyType::TempSpike,
-                packet,
+                packet: packet.clone(), // cloned here
             });
         }
-    
-        if packet.position < 2.0 {
+
+        if packet.position > 2.0 {
             anomalies.push(AnomalyReport {
                 anomaly: AnomalyType::PositionalError,
-                packet,
+                packet: packet.clone(), // cloned here
             });
         }
-    
+
         let f = Self::avg(&mut self.force_buffer, packet.force);
         let t = Self::avg(&mut self.temp_buffer, packet.temperature);
         let p = Self::avg(&mut self.pos_buffer, packet.position);
-    
-        let smoothed = SensorPacket {
-            timestamp: packet.timestamp,
-            force: f,
-            temperature: t,
-            position: p,
+
+        let has_anomaly = !anomalies.is_empty();
+        let smoothed = if has_anomaly {
+            packet.clone()
+        } else {
+            SensorPacket {
+                timestamp: packet.timestamp,
+                force: f,
+                temperature: t,
+                position: p,
+            }
         };
-    
+
         (smoothed, anomalies)
     }
 

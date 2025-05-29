@@ -1,11 +1,10 @@
-use crate::types::SensorPacket;
+
 use crate::types::Transmitter;
 use lapin::{
     options::{BasicPublishOptions, QueueDeclareOptions},
     types::FieldTable,
-    BasicProperties, Channel, Connection, ConnectionProperties,
+    BasicProperties, Connection, ConnectionProperties,
 };
-use serde_json;
 
 impl Transmitter {
     pub async fn new(uri: &str) -> Self {
@@ -27,21 +26,19 @@ impl Transmitter {
         Self { channel }
     }
 
-    pub async fn send(&self, packet: &SensorPacket) {
-        let payload = serde_json::to_vec(packet).expect("Serialization failed");
-        self.send_raw(&payload).await;
-    }
-
-    pub async fn send_raw(&self, payload: &[u8]) {
-        self.channel
+    pub async fn send_serialized(&self, payload: &[u8]) {
+        let confirm = self.channel
             .basic_publish(
                 "",
                 "sensor_data",
-                BasicPublishOptions::default(), // confirm=true
+                BasicPublishOptions::default(),
                 payload,
-                BasicProperties::default(),
+                BasicProperties::default().with_delivery_mode(1), 
             )
-            .await
-            .expect("Publish failed");
+            .await;
+    
+        if let Err(e) = confirm {
+            eprintln!("Publish error: {:?}", e);
+        }
     }
-}
+} 

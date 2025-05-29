@@ -11,7 +11,6 @@ pub fn generate_sensor_packet() -> SensorPacket {
     let mut position = generate_sensor_value(5.0, 1.0);
     let mut temperature = generate_sensor_value(25.0, 0.5);
 
-    // anomalies randomly (20% chance)
     let mut rng = rng();
     let spike_chance: f32 = rng.random();
     if spike_chance < 0.20 {
@@ -31,29 +30,24 @@ pub fn generate_sensor_packet() -> SensorPacket {
     }
 }
 
-pub fn start_sensor_data_stream(tx: tokio::sync::mpsc::Sender<(SensorPacket, f64)>) {
-    tokio::spawn(async move {
-        let interval = Duration::from_millis(5);
-        let mut next_tick = Instant::now();
+pub async fn start_sensor_data_stream(tx: tokio::sync::mpsc::Sender<(usize, SensorPacket, f64)>) {
+    let interval = Duration::from_millis(5);
+    let mut next_tick = Instant::now();
 
-        for i in 0..10000 {
-            next_tick += interval;
+    for packet_id in 1..=3000 {
+        next_tick += interval;
 
-            let gen_start = Instant::now();
-            let packet = generate_sensor_packet();
-            let gen_time = gen_start.elapsed().as_secs_f64() * 1000.0; // ms
+        let gen_start = Instant::now();
+        let packet = generate_sensor_packet();
+        let gen_time = gen_start.elapsed().as_secs_f64() * 1000.0; // ms
 
-            // Optional: log generation time
-            
-
-            if tx.send((packet, gen_time)).await.is_err() {
-                eprintln!("Receiver dropped. Stopping sensor stream.");
-                break;
-            }
-
-            if let Some(remaining) = next_tick.checked_duration_since(Instant::now()) {
-                tokio::time::sleep(remaining).await;
-            }
+        if tx.send((packet_id, packet, gen_time)).await.is_err() {
+            eprintln!("Receiver dropped. Stopping sensor stream.");
+            break;
         }
-    });
+
+        if let Some(remaining) = next_tick.checked_duration_since(Instant::now()) {
+            tokio::time::sleep(remaining).await;
+        }
+    }
 }

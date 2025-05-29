@@ -36,7 +36,7 @@ fn bench_send_raw(c: &mut Criterion) {
     c.bench_function("transmitter_send_raw", |b| {
         b.iter(|| {
             rt.block_on(async {
-                transmitter.send_raw(&payload).await;
+                transmitter.send_serialized(&payload).await;
             });
         });
     });

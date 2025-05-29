@@ -20,7 +20,7 @@ pub fn bench_full_pipeline(c: &mut Criterion) {
                 let packet = generate_sensor_packet();                    // Simulate sensor
                 let (processed, _) = processor.process(&packet);          // Apply filter & detect anomalies
                 let payload = serde_json::to_vec(&processed).unwrap();         // Serialize
-                transmitter.send_raw(&payload).await;                                   // Transmit to RabbitMQ
+                transmitter.send_serialized(&payload).await;                            // Transmit to RabbitMQ
             });
         });
     });
