@@ -18,6 +18,7 @@ pub enum AnomalyType {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct AnomalyReport {
     pub anomaly: AnomalyType,
     pub packet: SensorPacket,
@@ -35,9 +36,9 @@ pub struct SensorProcessor {
     pub pos_buffer: VecDeque<f32>,
 }
 
-#[derive(Debug, Deserialize)]
-pub enum Feedback {
-    UpdateForceThreshold(f32),
-    UpdateTempThreshold(f32),
-    UpdatePosThreshold(f32),
-}
+// #[derive(Debug, Deserialize)]
+// pub enum Feedback {
+//     UpdateForceThreshold(f32),
+//     UpdateTempThreshold(f32),
+//     UpdatePosThreshold(f32),
+// }
